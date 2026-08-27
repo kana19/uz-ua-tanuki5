@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>設定 — ウルトラZAIMUくん</title>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       設定画面 レイアウト
+       スマホ：page-wrapper をスクロール（base.css の bottom padding を活かす）
+       iPad ：is-ipad クラスで中央寄せ・アコーディオン（settings.js 制御）
+       ══════════════════════════════════════════════════════════ */
+    .settings-header {
+      padding: 16px 16px 8px;
+      background: var(--uz-bg, #fff);
+    }
+    .settings-header__title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--uz-text);
+    }
+
+    .settings-section {
+      background: var(--uz-surface);
+      border: 1px solid var(--uz-border);
+      border-radius: 12px;
+      margin: 12px 16px;
+      overflow: hidden;
+    }
+    .settings-section__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 14px 16px;
+      background: none;
+      border: none;
+      font-family: var(--font-main);
+      cursor: default;
+      text-align: left;
+    }
+    .settings-section__title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--uz-text);
+    }
+    .settings-count-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--uz-muted);
+    }
+    .settings-section__body {
+      padding: 0 0 8px;
+    }
+
+    /* ── 行（スタッフ／サービス／仕入 共通） ── */
+    .staff-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--uz-border);
+    }
+    .staff-row:first-child { border-top: none; }
+    .staff-row__name {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--uz-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── 雇用形態バッジ ── */
+    .staff-emp-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .staff-emp-badge--employed {
+      background: rgba(59,130,246,0.12);
+      color: #3b82f6;
+    }
+    .staff-emp-badge--contractor {
+      background: rgba(229,185,57,0.16);
+      color: #b8860b;
+    }
+
+    /* ── 税率バッジ ── */
+    .service-tax-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(0,0,0,0.05);
+      color: var(--uz-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── 拠点管理 行（段2・QR現地証明） ── */
+    .qrloc-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--uz-border);
+    }
+    .qrloc-row:first-child { border-top: none; }
+    .qrloc-qr {
+      width: 64px;
+      height: 64px;
+      flex-shrink: 0;
+      border: 1px solid var(--uz-border);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .qrloc-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .qrloc-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--uz-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .qrloc-token {
+      font-size: 11px;
+      color: var(--uz-text-muted);
+      font-family: var(--font-mono, monospace);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── ボタン（編集／保存／削除／キャンセル） ── */
+    .staff-edit-btn,
+    .staff-save-btn,
+    .staff-delete-btn,
+    .staff-cancel-btn {
+      font-size: 11px;
+      padding: 4px 12px;
+      line-height: 1.4;
+      border-radius: 20px;
+      border: 0.5px solid var(--uz-border2);
+      cursor: pointer;
+      font-family: var(--font-main);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .staff-edit-btn { background: var(--uz-amber-bg); color: var(--uz-text); }
+    .staff-save-btn { background: var(--uz-text); color: #fff; border-color: var(--uz-text); }
+    .staff-delete-btn { background: var(--uz-red-bg); color: var(--uz-red); border-color: rgba(224,80,80,0.3); }
+    .staff-cancel-btn { background: none; color: var(--uz-muted); }
+
+    /* ── スタッフ編集モード（2段組） ── */
+    .staff-row--editing { display: block; padding: 12px 16px; }
+    .staff-edit { display: flex; flex-direction: column; gap: 8px; }
+    .staff-edit__line { display: flex; align-items: center; gap: 8px; }
+    .staff-edit__name { flex: 1; min-width: 0; }
+    .staff-edit__emp { width: 150px; flex-shrink: 0; }
+    .staff-edit__cost { width: 150px; flex-shrink: 0; }
+    .staff-edit__pw { flex: 1; min-width: 0; }
+    .staff-edit__actions { gap: 8px; }
+    .staff-edit__spacer { flex: 1; }
+
+    /* ── 追加フォーム行 ── */
+    .settings-add-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      border-top: 1px solid var(--uz-border);
+    }
+    .settings-input {
+      flex: 1;
+      min-width: 120px;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--uz-border2);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: var(--font-main);
+      background: var(--uz-bg, #fff);
+      color: var(--uz-text);
+      box-sizing: border-box;
+    }
+    .settings-add-btn {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: none;
+      background: var(--uz-text);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-main);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .settings-save-btn {
+      display: block;
+      margin: 12px 16px 4px;
+      padding: 12px 16px;
+      width: calc(100% - 32px);
+      border-radius: 10px;
+      border: none;
+      background: var(--uz-text);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-main);
+      cursor: pointer;
+    }
+    .settings-note {
+      font-size: 12px;
+      color: var(--uz-muted);
+      line-height: 1.6;
+      padding: 6px 16px 4px;
+    }
+
+    /* ── 基本情報（読み取り専用） ── */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--uz-border);
+    }
+    .info-row:first-child { border-top: none; }
+    .info-row__key { color: var(--uz-muted); font-size: 13px; }
+    .info-row__val { font-weight: 700; font-size: 14px; text-align: right; }
+    .info-row__url { font-size: 11px; color: var(--uz-muted); word-break: break-all; }
+
+    /* ── フォーム select（共通流用） ── */
+    .form-select {
+      height: 40px;
+      padding: 0 8px;
+      border: 1px solid var(--uz-border2);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--font-main);
+      background: var(--uz-bg, #fff);
+      color: var(--uz-text);
+    }
+
+    /* ── 書類マスタ（商品／顧客）追加フォーム：複数行スタック ── */
+    .settings-add-row--stack { flex-direction: column; align-items: stretch; gap: 8px; }
+    .mdoc-cat-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+    .mdoc-cat { min-width: 0; }
+    /* 一覧行の副次情報（カテゴリ・価格・FAX等） */
+    .mdoc-row { display: block; padding: 10px 16px; border-top: 1px solid var(--uz-border); }
+    .mdoc-row:first-child { border-top: none; }
+    .mdoc-row__top { display: flex; align-items: center; gap: 8px; }
+    .mdoc-row__name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--uz-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mdoc-sub { font-size: 12px; color: var(--uz-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mdoc-cat-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(0,0,0,0.05); color: var(--uz-muted); white-space: nowrap; flex-shrink: 0; }
+    .mdoc-empty { padding: 16px; text-align: center; font-size: 13px; color: var(--uz-muted); }
+    /* 分類確定時の金額・税率確認ヒント（分類で金額が変わりやすいため） */
+    .mdoc-price-hint { font-size: 12px; line-height: 1.5; color: var(--uz-text); background: var(--uz-amber-bg, rgba(229,185,57,0.14)); border-radius: 8px; padding: 8px 12px; margin: 0; }
+
+    .settings-footer {
+      text-align: center;
+      color: var(--uz-muted);
+      font-size: 12px;
+      padding: 16px 0 24px;
+    }
+
+    /* ── iPad：ホーム/月次管理と同じくサイドバー幅分を右オフセット（縦型でも隠れない）。
+       本体内で各カードを読みやすい幅に中央寄せ。 ── */
+    body.is-ipad .page-wrapper {
+      max-width: none;
+      margin-left: 200px;
+      margin-right: 0;
+      width: calc(100% - 200px);
+    }
+    body.is-ipad .settings-header,
+    body.is-ipad .settings-section,
+    body.is-ipad .settings-save-btn,
+    body.is-ipad .settings-note,
+    body.is-ipad .settings-footer {
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css">
+</head>
+<body data-page="settings">
+
+<!-- iPad サイドバーナビ（スマホでは非表示／中身は app.js uzRenderSidebar が生成） -->
+<nav class="nav-sidebar" id="nav-sidebar" data-active="settings" aria-label="メインナビゲーション"></nav>
+
+<div class="page-wrapper">
+
+  <!-- ページヘッダー -->
+  <header class="settings-header">
+    <span class="settings-header__title">設定</span>
+  </header>
+
+  <!-- ① スタッフマスタ（勤怠ドメイン＝レオ版は既定OFF・attendance ON 時のみ表示） -->
+  <section class="settings-section" data-feature="attendance" style="display:none">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-staff-body" aria-expanded="true">
+      <span class="settings-section__title">スタッフマスタ</span>
+    </button>
+    <div class="settings-section__body" id="sec-staff-body">
+      <div id="staff-list-container"></div>
+      <div class="settings-add-row">
+        <input type="text" id="staff-add-input" class="settings-input"
+               placeholder="スタッフ名" maxlength="20" autocomplete="off">
+        <select id="staff-add-emp" class="form-select" style="flex-shrink:0;">
+          <option value="employed_full">常勤雇用（社員）</option>
+          <option value="employed_temp">臨時アルバイト</option>
+          <option value="contractor">委託・外注</option>
+        </select>
+        <select id="staff-add-cost" class="form-select" style="flex-shrink:0;" disabled>
+          <option value="21">21：外注工賃</option>
+          <option value="25">25：税理士等の報酬</option>
+        </select>
+        <input type="text" id="staff-add-password" class="settings-input"
+               placeholder="パスワード（5桁英数字）" maxlength="5" autocomplete="off">
+        <button id="staff-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+      </div>
+      <p class="settings-note">
+        氏名・雇用形態・コスト科目（委託・外注時）・パスワードを設定できます。給与単価・源泉区分はPC版の出勤管理で設定します。
+      </p>
+    </div>
+  </section>
+
+  <!-- ② サービスマスタ（売上区分） -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-service-body" aria-expanded="true">
+      <span class="settings-section__title">サービスマスタ（売上区分）
+        <span id="service-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-service-body">
+      <div id="service-list-container"></div>
+      <div id="service-add-row" class="settings-add-row">
+        <input type="text" id="service-add-name" class="settings-input"
+               placeholder="サービス名（例：店内売上）" maxlength="30" autocomplete="off">
+        <select id="service-add-tax" class="form-select" style="width:120px;flex-shrink:0;">
+          <option value="10">10%</option>
+          <option value="8">8%（軽減）</option>
+          <option value="0">0%（非課税）</option>
+        </select>
+        <input type="text" id="service-add-cat" class="settings-input" style="width:130px;flex-shrink:0;"
+               placeholder="分類（任意）" maxlength="20" list="service-cat-options" autocomplete="off">
+        <button id="service-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+      </div>
+      <p id="service-limit-hint" class="settings-note" hidden></p>
+    </div>
+  </section>
+
+  <!-- ③ 仕入原価マスタ -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-purchase-body" aria-expanded="true">
+      <span class="settings-section__title">仕入原価マスタ
+        <span id="purchase-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-purchase-body">
+      <div id="purchase-list-container"></div>
+      <div id="purchase-add-row" class="settings-add-row">
+        <input type="text" id="purchase-add-name" class="settings-input"
+               placeholder="仕入科目名（例：食材費）" maxlength="30" autocomplete="off">
+        <select id="purchase-add-tax" class="form-select" style="width:120px;flex-shrink:0;">
+          <option value="10">10%</option>
+          <option value="8">8%（軽減）</option>
+          <option value="0">0%（非課税）</option>
+        </select>
+        <input type="text" id="purchase-add-cat" class="settings-input" style="width:130px;flex-shrink:0;"
+               placeholder="分類（任意）" maxlength="20" list="purchase-cat-options" autocomplete="off">
+        <button id="purchase-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+      </div>
+      <p id="purchase-limit-hint" class="settings-note" hidden></p>
+    </div>
+  </section>
+
+  <!-- ③-2 サービス販売チャネル大分類（任意設定・→ 03§1-1-2） -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-schannel-body" aria-expanded="false">
+      <span class="settings-section__title">サービス販売チャネル（大分類・任意）
+        <span id="schannel-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-schannel-body">
+      <div id="schannel-list-container"></div>
+      <div id="schannel-add-row" class="settings-add-row">
+        <input type="text" id="schannel-add-name" class="settings-input"
+               placeholder="チャネル名（例：店内・テイクアウト・卸し）" maxlength="30" autocomplete="off">
+        <select id="schannel-add-tax" class="form-select" style="width:120px;flex-shrink:0;">
+          <option value="10">10%</option>
+          <option value="8">8%（軽減）</option>
+          <option value="0">0%（非課税）</option>
+        </select>
+        <button id="schannel-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+      </div>
+      <p id="schannel-limit-hint" class="settings-note" hidden></p>
+      <p class="settings-note">
+        同じ商品を「店内・テイクアウト・卸し」など違うチャネル・違う税率で売り分ける時の大分類です。設定すると売上入力で選択でき、税率は大分類が優先されます。空欄でも動きます（設定なし＝従来通り）。
+      </p>
+    </div>
+  </section>
+
+  <!-- ③-3 仕入原価大分類（任意設定・→ 03§1-3-2） -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-pcat-body" aria-expanded="false">
+      <span class="settings-section__title">仕入原価大分類（グルーピング・任意）
+        <span id="pcat-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-pcat-body">
+      <div id="pcat-list-container"></div>
+      <div id="pcat-add-row" class="settings-add-row">
+        <input type="text" id="pcat-add-name" class="settings-input"
+               placeholder="大分類名（例：食材・酒類・包材）" maxlength="30" autocomplete="off">
+        <button id="pcat-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+      </div>
+      <p id="pcat-limit-hint" class="settings-note" hidden></p>
+      <p class="settings-note">
+        仕入原価品目を大分類でまとめる時に使います（食材／酒類／包材など）。PC月次管理で大分類別の集計が見られます。品目の税率は品目側で保持します。空欄でも動きます（設定なし＝従来通り）。
+      </p>
+    </div>
+  </section>
+
+  <!-- ④ 販管費マスタ（コスト科目マスタ） -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-cm-body" aria-expanded="true">
+      <span class="settings-section__title">販管費マスタ（コスト科目マスタ）</span>
+    </button>
+    <div class="settings-section__body" id="sec-cm-body">
+      <div id="cost-master-container"></div>
+      <button id="cost-master-save-btn" class="settings-save-btn" type="button">販管費マスタを保存</button>
+    </div>
+  </section>
+
+  <!-- ④-2 商品マスタ（書類発行・FAX受注の土台／doc_automation ON時のみ表示） -->
+  <section class="settings-section" data-feature="doc_automation" style="display:none">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-products-body" aria-expanded="true">
+      <span class="settings-section__title">商品マスタ
+        <span id="products-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-products-body">
+      <div id="products-list-container"></div>
+      <div id="products-add-row" class="settings-add-row settings-add-row--stack">
+        <!-- 分類（単一所属・値リスト自由拡張。既存から選ぶか新しい分類名を入力＝分類追加・空欄可） -->
+        <div class="mdoc-cat-row">
+          <input type="text" id="product-add-cat" class="settings-input mdoc-cat" list="mdoc-cat-list"
+                 placeholder="分類（例:店内/テイクアウト/卸し・任意）" maxlength="20" autocomplete="off">
+          <input type="text" id="product-add-name" class="settings-input" list="mdoc-name-list"
+                 placeholder="商品名（既存は選択・新規は入力）" maxlength="40" autocomplete="off">
+        </div>
+        <datalist id="mdoc-cat-list"></datalist>
+        <datalist id="mdoc-name-list"></datalist>
+        <p id="product-name-hint" class="mdoc-price-hint" hidden></p>
+        <div class="mdoc-cat-row">
+          <input type="number" id="product-add-price" class="settings-input" style="max-width:160px;"
+                 placeholder="標準単価(税抜)" min="0" inputmode="numeric" autocomplete="off">
+          <select id="product-add-tax" class="form-select" style="width:120px;flex-shrink:0;">
+            <option value="10">10%</option>
+            <option value="8">8%（軽減）</option>
+            <option value="0">0%（非課税）</option>
+          </select>
+          <input type="text" id="product-add-unit" class="settings-input" style="max-width:120px;"
+                 placeholder="単位(個/箱…)" maxlength="8" autocomplete="off">
+        </div>
+        <p id="product-price-hint" class="mdoc-price-hint" hidden></p>
+        <div class="mdoc-cat-row">
+          <input type="text" id="product-add-aliases" class="settings-input"
+                 placeholder="別名（FAX表記ゆれ・カンマ区切り・任意）" maxlength="120" autocomplete="off">
+          <button id="product-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+        </div>
+      </div>
+      <p class="settings-note">
+        見積・請求・納品書の明細と、FAX受注の名寄せに使う商品台帳です。1商品＝1分類（金額集計の骨）。分類は既存から選ぶか、新しい分類名を入力すれば追加できます（分類追加・空欄可）。分類は金額・税率に連動しやすいため、分類を確定すると標準単価と税率の確認をうながします。同じ商品を店内／テイクアウト等で売り分ける場合は、売上入力側でチャネルを区分します。
+      </p>
+    </div>
+  </section>
+
+  <!-- ④-3 顧客マスタ（得意先・ユーザー主権／doc_automation ON時のみ表示） -->
+  <section class="settings-section" data-feature="doc_automation" style="display:none">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-customers-body" aria-expanded="true">
+      <span class="settings-section__title">顧客マスタ（得意先）
+        <span id="customers-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-customers-body">
+      <div id="customers-list-container"></div>
+      <div id="customers-add-row" class="settings-add-row settings-add-row--stack">
+        <div class="mdoc-cat-row">
+          <input type="text" id="customer-add-name" class="settings-input"
+                 placeholder="顧客名（正式宛名）" maxlength="40" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="customer-add-fax" class="settings-input"
+                 placeholder="先方FAX番号（受注照合・複数可）" maxlength="60" autocomplete="off">
+          <input type="text" id="customer-add-tel" class="settings-input"
+                 placeholder="電話番号" maxlength="20" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="customer-add-postal" class="settings-input" style="max-width:140px;"
+                 placeholder="郵便番号" maxlength="8" autocomplete="off">
+          <input type="text" id="customer-add-address" class="settings-input"
+                 placeholder="住所（請求書/納品書の宛名）" maxlength="80" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="customer-add-email" class="settings-input"
+                 placeholder="メール（帳票送付・任意）" maxlength="60" autocomplete="off">
+          <input type="text" id="customer-add-contact" class="settings-input"
+                 placeholder="担当者（任意）" maxlength="20" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="customer-add-memo" class="settings-input"
+                 placeholder="メモ（任意）" maxlength="60" autocomplete="off">
+          <button id="customer-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+        </div>
+      </div>
+      <div class="mdoc-cat-row" style="gap:8px;margin-top:8px;">
+        <button id="customers-export-csv-btn" class="settings-save-btn" type="button" style="flex:0 0 auto;">CSV エクスポート</button>
+        <label for="customers-import-csv-file" class="settings-add-btn" style="cursor:pointer;flex:0 0 auto;">CSV インポート</label>
+        <input type="file" id="customers-import-csv-file" accept=".csv,text/csv" style="display:none;">
+        <select id="customers-import-mode" class="form-select" style="width:140px;flex-shrink:0;">
+          <option value="warn">重複時：警告</option>
+          <option value="skip">重複時：スキップ</option>
+          <option value="force">重複時：強制取込</option>
+        </select>
+      </div>
+      <p id="customers-import-report" class="settings-note" hidden></p>
+      <p class="settings-note">
+        請求書・納品書の宛名と、FAX受注の発注元照合に使う取引先台帳です（お店の資産＝日々追加できます）。先方FAX番号は、届いたFAXを自動で発注元に結び付けるための照合キーです。CSV でまとめて取込／書出も可能です。
+      </p>
+    </div>
+  </section>
+
+  <!-- ④-4 仕入先マスタ（新規台帳・→ 03§1-6-2） -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-suppliers-body" aria-expanded="false">
+      <span class="settings-section__title">仕入先マスタ
+        <span id="suppliers-count-badge" class="settings-count-badge" hidden></span>
+      </span>
+    </button>
+    <div class="settings-section__body" id="sec-suppliers-body">
+      <div id="suppliers-list-container"></div>
+      <div id="suppliers-add-row" class="settings-add-row settings-add-row--stack">
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-name" class="settings-input"
+                 placeholder="仕入先名（正式名）" maxlength="40" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-tel" class="settings-input"
+                 placeholder="電話番号" maxlength="20" autocomplete="off">
+          <input type="text" id="supplier-add-fax" class="settings-input"
+                 placeholder="FAX番号" maxlength="20" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-postal" class="settings-input" style="max-width:140px;"
+                 placeholder="郵便番号" maxlength="8" autocomplete="off">
+          <input type="text" id="supplier-add-address" class="settings-input"
+                 placeholder="住所" maxlength="80" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-email" class="settings-input"
+                 placeholder="メール（任意）" maxlength="60" autocomplete="off">
+          <input type="text" id="supplier-add-invoice" class="settings-input"
+                 placeholder="インボイス番号（任意）" maxlength="20" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-bank" class="settings-input"
+                 placeholder="振込先（任意）" maxlength="60" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-aliases" class="settings-input"
+                 placeholder="表記ゆれ別名（レシートOCR名寄せ・改行区切り）" maxlength="120" autocomplete="off">
+        </div>
+        <div class="mdoc-cat-row">
+          <input type="text" id="supplier-add-memo" class="settings-input"
+                 placeholder="メモ（任意）" maxlength="60" autocomplete="off">
+          <button id="supplier-add-btn" class="settings-add-btn" type="button">＋ 追加</button>
+        </div>
+      </div>
+      <p class="settings-note">
+        レシートOCRの名寄せ先・コスト入力の取引先選択候補になる仕入先の台帳です。行をタップすると当月／累計仕入額と直近履歴が表示されます（コストシートの取引先名と自動照合）。支払サイトは列だけ確保し、買掛支払期日カレンダー実装時に運用します。
+      </p>
+    </div>
+  </section>
+
+  <!-- ⑤ 拠点管理（段2・QR現地証明） 既定非表示・qrProofEnabled 時のみ表示 -->
+  <section class="settings-section" id="sec-qrloc" hidden>
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-qrloc-body" aria-expanded="true">
+      <span class="settings-section__title">拠点管理（出勤QR）</span>
+    </button>
+    <div class="settings-section__body" id="sec-qrloc-body">
+      <div id="qrloc-list-container"></div>
+      <div id="qrloc-add-row" class="settings-add-row">
+        <input type="text" id="qrloc-add-label" class="settings-input"
+               placeholder="拠点名（例：2F・別館）" maxlength="20" autocomplete="off">
+        <button id="qrloc-add-btn" class="settings-add-btn" type="button">＋ 拠点を追加</button>
+      </div>
+      <p class="settings-note">
+        拠点を追加すると出勤用QR（{店舗ID}-02 …）が発行されます。<br>
+        スタッフは出勤時にこのQRを読み取って現地証明します。既定拠点（-01）は削除できません。
+      </p>
+    </div>
+  </section>
+
+  <!-- ⑥ 基本情報（読み取り専用） -->
+  <section class="settings-section">
+    <button class="settings-section__head" type="button"
+            aria-controls="sec-info-body" aria-expanded="true">
+      <span class="settings-section__title">基本情報</span>
+    </button>
+    <div class="settings-section__body" id="sec-info-body">
+      <div class="info-row">
+        <span class="info-row__key">店舗名</span>
+        <span id="info-store-name" class="info-row__val">—</span>
+      </div>
+      <div class="info-row" id="info-business-hours-row" hidden>
+        <span class="info-row__key">営業時間</span>
+        <span id="info-business-hours" class="info-row__val">—</span>
+      </div>
+      <p id="info-business-hours-hint" class="settings-note" hidden>出勤の打刻忘れ判定に使用します（退勤打刻が無いまま営業終了の1時間後を過ぎると「打刻忘れ」と表示）。</p>
+      <div class="info-row">
+        <span class="info-row__key">プラン</span>
+        <span class="info-row__val">レオ</span>
+      </div>
+      <div class="info-row">
+        <span class="info-row__key">提供元</span>
+        <span class="info-row__val">株式会社ターゲット</span>
+      </div>
+      <div class="info-row">
+        <span class="info-row__key">バージョン</span>
+        <span id="info-version" class="info-row__val" style="cursor:pointer;user-select:none;" title="サポート用情報">1.0.0</span>
+      </div>
+
+      <!-- GAS接続情報（既定非表示・バージョンを5回タップで展開） -->
+      <div id="info-debug" hidden>
+        <div class="info-row">
+          <span class="info-row__key">GAS接続状態</span>
+          <span id="gas-status-val" class="info-row__val" style="color:var(--uz-muted);">確認中...</span>
+        </div>
+        <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+          <span class="info-row__key">WebアプリURL</span>
+          <span id="gas-url-val" class="info-row__url" title="GAS WebアプリURL"></span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="settings-footer">
+    ウルトラZAIMUくん LEO版<br>
+    © 2026 株式会社ターゲット
+  </div>
+
+</div><!-- /page-wrapper -->
+
+<!-- ボトムナビゲーション（スマホ用） -->
+<nav class="bottom-nav" aria-label="メインナビゲーション">
+
+  <a href="index.html" class="nav-item">
+    <i class="ti ti-planet nav-item__icon" aria-hidden="true"></i>
+    <span class="nav-item__label">ホーム</span>
+  </a>
+
+  <a href="history.html" class="nav-item">
+    <i class="ti ti-moon nav-item__icon" aria-hidden="true"></i>
+    <span class="nav-item__label">月次管理</span>
+  </a>
+
+  <a href="settings.html" class="nav-item nav-item--active" aria-current="page">
+    <i class="ti ti-settings nav-item__icon" aria-hidden="true"></i>
+    <span class="nav-item__label">設定</span>
+  </a>
+</nav>
+
+<!-- ローディングオーバーレイ -->
+<div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+  <div class="spinner"></div>
+</div>
+
+<script src="js/app.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/masters-doc.js"></script>
+</body>
+</html>

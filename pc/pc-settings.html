@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>設定 | ウルトラZAIMUくん PC版</title>
+<link rel="icon" type="image/png" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="css/pc.css">
+<style>
+  /* スタッフ編集行（インライン編集・2列構成） */
+  #pc-app .staff-edit-cell { display:flex; flex-direction:column; gap:6px; }
+  #pc-app .staff-edit-line { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #pc-app .staff-edit-line .pc-input { min-width:120px; }
+  #pc-app .pc-btn--danger { background:var(--uz-red-bg,#fdecec); color:var(--uz-red,#c0392b); border:1px solid rgba(192,57,43,0.3); }
+  #pc-app .info-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--uz-border,#e5e7eb);}
+  #pc-app .info-row:last-of-type{border-bottom:none;}
+  #pc-app .info-row__key{color:var(--uz-muted,#6b7280);font-size:13px;}
+  #pc-app .info-row__val{font-weight:700;font-size:14px;text-align:right;}
+  #pc-app .info-row__url{font-size:11px;color:var(--uz-muted,#6b7280);word-break:break-all;}
+</style>
+</head>
+<body class="pc-body">
+<div id="pc-app" class="pc-layout">
+  <main class="pc-main" id="pc-main">
+    <div class="pc-body-inner">
+
+      <!-- ① スタッフマスタ -->
+      <div class="pc-card">
+        <div class="pc-section-title">スタッフマスタ</div>
+        <table class="pc-table" id="staff-table">
+          <thead><tr>
+            <th style="width:50px;">ID</th>
+            <th>氏名</th>
+            <th style="width:160px;">雇用形態</th>
+            <th style="width:170px;">コスト科目</th>
+            <th style="width:160px;">操作</th>
+          </tr></thead>
+          <tbody id="staff-body"></tbody>
+        </table>
+        <div id="staff-add-row" class="pc-form-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="staff-add-name" class="pc-input" placeholder="スタッフ名" maxlength="20" style="flex:2;min-width:140px;">
+          <select id="staff-add-emp" class="pc-select" style="width:160px;">
+            <option value="employed_full">常勤雇用（社員）</option>
+            <option value="employed_temp">臨時アルバイト</option>
+            <option value="contractor">委託・外注</option>
+          </select>
+          <select id="staff-add-cost" class="pc-select" style="width:170px;" disabled>
+            <option value="21">21：外注工賃</option>
+            <option value="25">25：税理士等の報酬</option>
+          </select>
+          <input type="text" id="staff-add-password" class="pc-input" placeholder="パスワード（5桁英数字）" maxlength="5" style="width:200px;">
+          <button id="staff-add-btn" class="pc-btn" type="button">＋ 追加</button>
+        </div>
+        <p class="pc-note" style="margin-top:8px;color:var(--uz-muted);">
+          常勤雇用（社員）・臨時アルバイトは月次給与計算で「20：給料賃金」に計上されます。委託・外注はコスト科目（21：外注工賃／25：税理士等の報酬）を選択してください（ホステス・コンパニオン等は外注工賃、税理士・社労士・デザイナー等は税理士等の報酬）。<br>
+          案件単発のヘルプ・スポット外注はスタッフ登録せず、案件管理から直接コスト入力してください。
+        </p>
+      </div>
+
+      <!-- ② サービスマスタ（売上区分） -->
+      <div class="pc-card">
+        <div class="pc-section-title">サービスマスタ（売上区分） <span id="svc-count-badge" class="pc-count-badge" hidden></span></div>
+        <table class="pc-table" id="svc-table">
+          <thead><tr><th style="width:90px;">コード</th><th>サービス名</th><th style="width:90px;">税率</th><th style="width:90px;">操作</th></tr></thead>
+          <tbody id="svc-body"></tbody>
+        </table>
+        <div id="svc-add-row" class="pc-form-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="svc-add-name" class="pc-input" placeholder="サービス名（例：店内売上）" maxlength="30" style="flex:2;min-width:160px;">
+          <select id="svc-add-tax" class="pc-select" style="width:120px;">
+            <option value="10">10%</option>
+            <option value="8">8%（軽減）</option>
+            <option value="0">0%（非課税）</option>
+          </select>
+          <button id="svc-add-btn" class="pc-btn" type="button">＋ 追加</button>
+        </div>
+        <p id="svc-limit-hint" class="pc-note" style="margin-top:6px;color:var(--uz-muted);" hidden></p>
+      </div>
+
+      <!-- ③ 仕入原価マスタ -->
+      <div class="pc-card">
+        <div class="pc-section-title">仕入原価マスタ <span id="pur-count-badge" class="pc-count-badge" hidden></span></div>
+        <table class="pc-table" id="pur-table">
+          <thead><tr><th style="width:90px;">コード</th><th>仕入科目名</th><th style="width:90px;">税率</th><th style="width:90px;">操作</th></tr></thead>
+          <tbody id="pur-body"></tbody>
+        </table>
+        <div id="pur-add-row" class="pc-form-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="pur-add-name" class="pc-input" placeholder="仕入科目名（例：食材費）" maxlength="30" style="flex:2;min-width:160px;">
+          <select id="pur-add-tax" class="pc-select" style="width:120px;">
+            <option value="10">10%</option>
+            <option value="8">8%（軽減）</option>
+            <option value="0">0%（非課税）</option>
+          </select>
+          <button id="pur-add-btn" class="pc-btn" type="button">＋ 追加</button>
+        </div>
+        <p id="pur-limit-hint" class="pc-note" style="margin-top:6px;color:var(--uz-muted);" hidden></p>
+      </div>
+
+      <!-- ③-2 サービス販売チャネル大分類（任意設定・→ 03§1-1-2） -->
+      <div class="pc-card">
+        <div class="pc-section-title">サービス販売チャネル大分類（任意） <span id="pc-schannel-count-badge" class="pc-count-badge" hidden></span></div>
+        <p class="pc-note" style="color:var(--uz-muted);margin-bottom:10px;">
+          同じサービスを店内・テイクアウト・卸し等の違うチャネル・違う税率で売り分ける時の大分類です。設定するとスマホ売上入力で選択でき、税率は大分類が優先。空欄で無害運転（既存動作を壊さない）。
+        </p>
+        <table class="pc-table" id="pc-schannel-table">
+          <thead><tr><th style="width:90px;">ID</th><th>チャネル名</th><th style="width:90px;">税率</th><th style="width:90px;">操作</th></tr></thead>
+          <tbody id="pc-schannel-body"></tbody>
+        </table>
+        <div id="pc-schannel-add-row" class="pc-form-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="pc-schannel-add-name" class="pc-input" placeholder="チャネル名（例：店内）" maxlength="30" style="flex:2;min-width:160px;">
+          <select id="pc-schannel-add-tax" class="pc-select" style="width:120px;">
+            <option value="10">10%</option>
+            <option value="8">8%（軽減）</option>
+            <option value="0">0%（非課税）</option>
+          </select>
+          <button id="pc-schannel-add-btn" class="pc-btn" type="button">＋ 追加</button>
+        </div>
+        <p id="pc-schannel-limit-hint" class="pc-note" style="margin-top:6px;color:var(--uz-muted);" hidden></p>
+      </div>
+
+      <!-- ③-3 仕入原価大分類（任意設定・→ 03§1-3-2） -->
+      <div class="pc-card">
+        <div class="pc-section-title">仕入原価大分類（任意・グルーピング） <span id="pc-pcat-count-badge" class="pc-count-badge" hidden></span></div>
+        <p class="pc-note" style="color:var(--uz-muted);margin-bottom:10px;">
+          仕入原価品目を大分類でまとめます（食材／酒類／包材など）。品目マスタで categoryId 紐付け＝入力時は品目選択で自動決定（モーダルにタグは出ません）。税率は品目側 defaultTaxRate が正。
+        </p>
+        <table class="pc-table" id="pc-pcat-table">
+          <thead><tr><th style="width:90px;">ID</th><th>大分類名</th><th style="width:90px;">操作</th></tr></thead>
+          <tbody id="pc-pcat-body"></tbody>
+        </table>
+        <div id="pc-pcat-add-row" class="pc-form-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="pc-pcat-add-name" class="pc-input" placeholder="大分類名（例：食材）" maxlength="30" style="flex:2;min-width:160px;">
+          <button id="pc-pcat-add-btn" class="pc-btn" type="button">＋ 追加</button>
+        </div>
+        <p id="pc-pcat-limit-hint" class="pc-note" style="margin-top:6px;color:var(--uz-muted);" hidden></p>
+      </div>
+
+      <!-- ③-4 仕入先マスタ（新規台帳・→ 03§1-6-2） -->
+      <div class="pc-card">
+        <div class="pc-section-title">仕入先マスタ <span id="pc-suppliers-count-badge" class="pc-count-badge" hidden></span></div>
+        <p class="pc-note" style="color:var(--uz-muted);margin-bottom:10px;">
+          レシートOCRの名寄せ先・コスト入力の取引先選択候補になる仕入先の台帳です。仕入先名をクリックすると当月／累計仕入額と直近履歴が表示されます（コストシートの取引先名と自動照合）。支払サイトは列だけ確保、買掛支払期日カレンダー実装時に運用。
+        </p>
+        <table class="pc-table" id="pc-suppliers-table">
+          <thead><tr><th>仕入先名</th><th style="width:130px;">電話</th><th style="width:130px;">FAX</th><th style="width:120px;">操作</th></tr></thead>
+          <tbody id="pc-suppliers-body"></tbody>
+        </table>
+        <div id="pc-supplier-add-row" class="pc-form-row" style="margin-top:10px;gap:8px;flex-wrap:wrap;flex-direction:column;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="pc-supplier-add-name" class="pc-input" placeholder="仕入先名（正式名）" maxlength="40" style="flex:2;min-width:180px;">
+            <input type="text" id="pc-supplier-add-tel" class="pc-input" placeholder="電話" maxlength="20" style="flex:1;min-width:120px;">
+            <input type="text" id="pc-supplier-add-fax" class="pc-input" placeholder="FAX" maxlength="20" style="flex:1;min-width:120px;">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="pc-supplier-add-postal" class="pc-input" placeholder="郵便番号" maxlength="8" style="width:120px;">
+            <input type="text" id="pc-supplier-add-address" class="pc-input" placeholder="住所" maxlength="80" style="flex:2;min-width:220px;">
+            <input type="text" id="pc-supplier-add-email" class="pc-input" placeholder="メール（任意）" maxlength="60" style="flex:1;min-width:180px;">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="pc-supplier-add-invoice" class="pc-input" placeholder="インボイス番号（任意）" maxlength="20" style="flex:1;min-width:180px;">
+            <input type="text" id="pc-supplier-add-bank" class="pc-input" placeholder="振込先（任意）" maxlength="60" style="flex:1;min-width:180px;">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="pc-supplier-add-aliases" class="pc-input" placeholder="表記ゆれ別名（改行区切り）" maxlength="120" style="flex:2;min-width:200px;">
+            <input type="text" id="pc-supplier-add-memo" class="pc-input" placeholder="メモ（任意）" maxlength="60" style="flex:1;min-width:150px;">
+            <button id="pc-supplier-add-btn" class="pc-btn" type="button">＋ 追加</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③-5 顧客マスタ CSV I/O（→ 03§1-6-1） -->
+      <div class="pc-card">
+        <div class="pc-section-title">顧客マスタ CSV 入出力</div>
+        <p class="pc-note" style="color:var(--uz-muted);margin-bottom:10px;">
+          顧客マスタ（得意先）は日々スマホ版で追加できます。既存顧客の一括取込／バックアップ書出はここで操作。ヘッダー行付き12列雛形（customerId 空は新規採番・値ありは upsert）。
+        </p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button id="pc-customers-export-btn" class="pc-btn" type="button">CSV エクスポート</button>
+          <label for="pc-customers-import-file" class="pc-btn" style="cursor:pointer;">CSV インポート</label>
+          <input type="file" id="pc-customers-import-file" accept=".csv,text/csv" style="display:none;">
+          <select id="pc-customers-import-mode" class="pc-select" style="width:150px;">
+            <option value="warn">重複時：警告</option>
+            <option value="skip">重複時：スキップ</option>
+            <option value="force">重複時：強制取込</option>
+          </select>
+        </div>
+        <p id="pc-customers-import-report" class="pc-note" style="margin-top:8px;color:var(--uz-muted);" hidden></p>
+      </div>
+
+      <!-- ④ 販管費マスタ（コスト科目マスタ） -->
+      <div class="pc-card">
+        <div class="pc-section-title">販管費マスタ（コスト科目マスタ）</div>
+        <table class="pc-table" id="cm-table">
+          <thead><tr>
+            <th style="width:80px;">コード</th>
+            <th>科目名</th>
+            <th style="width:80px;">税率</th>
+            <th style="width:90px;">アプリ表示</th>
+            <th style="width:70px;">種別</th>
+          </tr></thead>
+          <tbody id="cm-body"></tbody>
+        </table>
+        <div style="margin-top:10px;"><button id="btn-save-cm" class="pc-btn">販管費マスタを保存</button></div>
+        <p class="pc-note" style="margin-top:8px;color:var(--uz-muted);">
+          コード26〜30 は青色申告決算書の任意枠です（5マス固定・拡張販売対象外）。<br>
+          固定科目（コード8〜25・31）の名称は青色申告決算書整合のため変更できません。<br>
+          「アプリ表示」のチェックを外した科目はスマホ・iPadのコスト入力に表示されません（PC版は全科目入力可）。
+        </p>
+      </div>
+
+      <!-- ⑤ 拠点管理（段2・QR現地証明） 既定非表示・qrProofEnabled 時のみ表示 -->
+      <div class="pc-card" id="qrloc-card" hidden>
+        <div class="pc-section-title">拠点管理（出勤QR）</div>
+        <table class="pc-table" id="qrloc-table">
+          <thead><tr>
+            <th style="width:90px;">QR</th>
+            <th>拠点名</th>
+            <th style="width:160px;">QRトークン</th>
+            <th style="width:120px;">操作</th>
+          </tr></thead>
+          <tbody id="qrloc-body"></tbody>
+        </table>
+        <div id="qrloc-add-row" class="pc-form-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="qrloc-add-name" class="pc-input" placeholder="拠点名（例：2F・別館）" maxlength="20" style="flex:2;min-width:160px;">
+          <button id="qrloc-add-btn" class="pc-btn" type="button">＋ 拠点を追加</button>
+        </div>
+        <p class="pc-note" style="margin-top:8px;color:var(--uz-muted);">
+          拠点を追加すると出勤用QR（{店舗ID}-02 …）が発行されます。スタッフは出勤時にこのQRを読み取って現地証明します。<br>
+          既定拠点（-01）は削除できません。
+        </p>
+      </div>
+
+      <!-- ⑥ 基本情報（読み取り専用） -->
+      <div class="pc-card">
+        <div class="pc-section-title">基本情報</div>
+        <div class="info-row">
+          <span class="info-row__key">店舗名</span>
+          <span id="info-store-name" class="info-row__val">—</span>
+        </div>
+        <div class="info-row" id="info-business-hours-row" hidden>
+          <span class="info-row__key">営業時間</span>
+          <span id="info-business-hours" class="info-row__val">—</span>
+        </div>
+        <p id="info-business-hours-hint" class="pc-note" style="margin-top:4px;color:var(--uz-muted);" hidden>出勤の打刻忘れ判定に使用します（退勤打刻が無いまま営業終了の1時間後を過ぎると「打刻忘れ」と表示）。</p>
+        <div class="info-row">
+          <span class="info-row__key">プラン</span>
+          <span class="info-row__val">レオ</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row__key">提供元</span>
+          <span class="info-row__val">株式会社ターゲット</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row__key">バージョン</span>
+          <span id="info-version" class="info-row__val" style="cursor:pointer;user-select:none;" title="サポート用情報">1.0.0</span>
+        </div>
+
+        <!-- GAS接続情報（既定非表示・バージョンを5回タップで展開） -->
+        <div id="info-debug" hidden>
+          <div class="info-row" style="margin-top:8px;border-top:1px dashed var(--uz-border);padding-top:10px;">
+            <span class="info-row__key">GAS接続状態</span>
+            <span id="gas-status-val" class="info-row__val" style="color:var(--uz-muted);">確認中...</span>
+          </div>
+          <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <span class="info-row__key">WebアプリURL</span>
+            <span id="gas-url-val" class="info-row__url" title="GAS WebアプリURL"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="settings-footer" style="text-align:center;color:var(--uz-muted);font-size:12px;padding:16px 0 24px;">
+        ウルトラZAIMUくん LEO版<br>
+        © 2026 株式会社ターゲット
+      </div>
+
+    </div>
+  </main>
+</div>
+<script src="../js/app.js"></script>
+<script src="js/pc-common.js"></script>
+<script src="js/pc-settings.js"></script>
+</body>
+</html>
